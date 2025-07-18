@@ -1,0 +1,6 @@
+int key = 15;           censor hehehe
+ban hello
+cool
+unban
+int hey = 3;
+int sum = key + hey;

@@ -11,10 +11,12 @@ const size_t WORDS_AMT = 150;
 
 struct Word
 {
-    char* word_start;
-    size_t word_len;
-
+    char* word;
     size_t line_num;
 };
 
 Word* text_preparing(char* file_name);
+
+Word* words_ctor();
+
+void words_dtor(Word* words);

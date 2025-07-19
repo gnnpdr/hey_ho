@@ -1,6 +1,15 @@
-int key = 15;           censor hehehe
-ban hello
-cool
-unban
-int hey = 3;
-int sum = key + hey;
+yo key is 15,      ... hehehe
+(* hello 
+cool*)
+yo hey is 3,
+
+yo hello (key, hey)
+{
+    yo sum is key and hey,
+
+    later sum,
+}
+
+hello
+
+donezo

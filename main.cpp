@@ -1,19 +1,27 @@
 #include "include/text_preparing.h"
-//#include "include/lex_analysis.h"
+#include "include/lex_analysis.h"
 //#include "include/syn_analysis.h"
 
 int main(int argc, char ** argv)
 {
-    //принять текст из файла в буфер, поделить на отдельные части
-    //в этой функции выделяется место для текста из файла (буфер), для массива слов, содержащего данные по каждому слову
-    //но не само слово, данные по нему есть в буфере
-    Word* words = text_preparing(argv[1]);  //words = массив строк - слов текста
-//--------------------------------          //токены же не сожержат само слово, а только сокращенную информацию
-    
+    Word* words = text_preparing(argv[1]);
+//--------------------------------          
+
+    //for (int i = 0; i < 10; i++)
+    //{
+    //    printf("%s, %d\n", words[i].word, words[i].line_num);
+    //}
+    //printf("\n");
+
     //определить смысл слов, лексер
-    //Token* tokens = words_ctor();
-    //ID* ID_table = ID_table_ctor;
-    //lex_analysis(words, tokens);
+    Lexer lexer = lexer_ctor(words);
+    lex_analysis(&lexer);
+
+    for (int i = 0; i < 31; i++)
+    {
+        printf("%s, %d, %d, %d, %d\n", lexer.tokens[i].word, lexer.tokens[i].line, lexer.tokens[i].scope, lexer.tokens[i].type, lexer.tokens[i].value);
+    }
+    printf("\n");
 //------------------------------
     //связать смысловые блоки, рекурсивный спуск
     //syn_analysis(words, id_table);

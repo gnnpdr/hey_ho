@@ -26,12 +26,12 @@ char* file_2_buffer(char* file_name)
 
     count_file_size(file_name, &size);
 
-    char* text = (char*)calloc(size, sizeof(char));
+    char* buffer = (char*)calloc(size, sizeof(char));
 
-    fread(text, sizeof(char), size, file);
+    fread(buffer, sizeof(char), size, file);
 
     fclose(file);
-    return text;
+    return buffer;
 }
 
 void count_file_size(char* file_name, size_t* size) 
@@ -87,14 +87,29 @@ char* remove_comments(char* buffer)
     return text;
 }
 
-Word* split_text_into_words(char* text)
+Word* words_ctor()
 {
     Word* words = (Word*)calloc(WORDS_AMT, sizeof(Word));
 
-    size_t pointer = 0;
-    size_t line_cnt = 0;
-    size_t word_cnt = 0;
-    size_t word_len = 0;
+    for (size_t word_cnt = 0; word_cnt < WORDS_AMT; word_cnt++)
+        words[word_cnt].word = (char*)calloc(MAX_WORD_LEN, sizeof(char));   
+    
+    return words;
+}
+
+void words_dtor(Word* words)
+{
+    for (size_t word_cnt = 0; word_cnt < WORDS_AMT; word_cnt++) 
+        free(words[word_cnt].word);
+
+    free(words);
+}
+
+Word* split_text_into_words(char* text)
+{
+    Word* words = words_ctor();
+
+    size_t pointer = 0, line_cnt = 0, word_cnt = 0, word_len = 0;
 
     while(pointer < strlen(text))
     {
@@ -108,18 +123,32 @@ Word* split_text_into_words(char* text)
         }
        
         words[word_cnt].line_num = line_cnt;
-        words[word_cnt].word_start = text + pointer;
         word_len = 0;
 
-        while (!isspace(text[pointer]))
+        if (isalnum(text[pointer]))
         {
-            word_len++;
-            pointer++;
+            while (isalnum(text[pointer]))
+            {
+                word_len++;
+                pointer++;
+            }
+        }
+        else
+        {
+            while (ispunct(text[pointer]))
+            {
+                word_len++;
+                pointer++;
+            }
         }
 
-        words[word_cnt].word_len = word_len;
-        word_cnt++;
+        strncpy(words[word_cnt++].word, text + pointer - word_len, word_len);
+        //printf("!%.2s!, %d\n", text + pointer - word_len, word_len);
     }
+
+    printf("%s\n----------------\n", text);
+
+    free(text);
 
     return words;
 }

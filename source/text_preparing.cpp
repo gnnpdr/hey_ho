@@ -2,16 +2,22 @@
 
 //----------------------------
 
-static char* file_2_buffer(char* file_name);
-char* remove_comments(char* buffer);
+static char* file_2_buffer(const char const* file_name);
+static char* remove_comments(char const* buffer);
 static Word* split_text_into_words(char* text);
 
-void count_file_size(char* file_name, size_t* size);
+static void count_file_size(const char const* file_name, size_t const* size);
 
 //---------------------------------------
 
-Word* text_preparing(char* file_name)
+Word* text_preparing(const char const* file_name)
 {
+    if (!file_name)
+    {
+        printf("null\n");
+        return nullptr;
+    }
+
     char* buffer = file_2_buffer(file_name);
     char* text = remove_comments(buffer);
     Word* words = split_text_into_words(text); 
@@ -22,11 +28,22 @@ Word* text_preparing(char* file_name)
 char* file_2_buffer(char* file_name)
 {
     FILE* file = fopen(file_name, "r");
+    if (!file)
+    {
+        printf("file open problem\n");
+        return nullptr;
+    }
+
     size_t size = 0;
 
     count_file_size(file_name, &size);
 
     char* buffer = (char*)calloc(size, sizeof(char));
+    if (!buffer)
+    {
+        printf("allocation_error\n");
+        return nullptr;
+    }
 
     fread(buffer, sizeof(char), size, file);
 

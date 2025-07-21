@@ -4,8 +4,6 @@
 
 const size_t KEY_WORDS_AMT = 23;
 const size_t MAX_WORD_LEN = 30;
-const size_t ERR_VAL_SIZE_T = 155;
-const int ERR_VAL_INT = -8;
 
 
 #define KW(...) key_words[__VA_ARGS__].word

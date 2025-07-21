@@ -3,18 +3,22 @@
 FILE* err_reporter_ctor()
 {
     FILE* log_file = fopen("log_file.txt", "a");
-    //if (!log_file)
-    //{
-    //    printf("problem with oppening log file :((\n");
-    //    return 1;
-    //}
 
     return log_file;
 }
 
-void err_reporter_dtor(FILE* log_file)
+int err_reporter_dtor(FILE* log_file)
 {
-    
+    int fclose_res = fclose(log_file);
+    if (fclose_res == EOF)
+    {
+        printf("problem with losing log file\n");
+        return ERR_VAL_INT;
+    }
+
+    log_file = NULL;
+
+    return 0;
 }
 
 int output_sys_err_msg(size_t line, char* file_name, SystemErrorType type, FILE* log_file)
@@ -27,7 +31,7 @@ int output_sys_err_msg(size_t line, char* file_name, SystemErrorType type, FILE*
         written_bytes = fprintf(log_file, "[RETURN], FILE %s, LINE %d\n", file_name, line);
 
     if (written_bytes < 0)
-        return 1;
+        return ERR_VAL_INT;
 
     return 0;
 }
@@ -42,7 +46,16 @@ int output_lang_err_msg(size_t line, char* file_name, LangErrorType type, char* 
         written_bytes = fprintf(log_file, "[ERROR] %s, FILE %s, LINE %d\n", system_err_output[type], file_name, line);
 
     if (written_bytes < 0)
-        return 1;
+        return ERR_VAL_INT;
 
     return 0;
+}
+
+void safe_free(void **ptr) 
+{
+    if (ptr && *ptr) 
+    {
+        free(*ptr);
+        *ptr = NULL;
+    }
 }

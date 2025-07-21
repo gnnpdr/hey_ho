@@ -1,11 +1,10 @@
 #pragma once
 
-#include <stdlib.h>
 #include <ctype.h>
 #include <sys/stat.h>
 #include <string.h>
 
-#include "structure.h"
+#include "error_reporter.h"
 
 const size_t WORDS_AMT = 150;
 

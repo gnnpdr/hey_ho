@@ -2,48 +2,82 @@
 
 //----------------------------
 
-static char* file_2_buffer(const char const* file_name);
-static char* remove_comments(char const* buffer);
-static Word* split_text_into_words(char* text);
+static char* file_2_buffer(const char const* file_name, FILE* log_file);
+static char* remove_comments(char const* buffer, FILE* log_file);
+static Word* split_text_into_words(char* text, FILE* log_file);
 
-static void count_file_size(const char const* file_name, size_t const* size);
+static int count_file_size(const char const* file_name, size_t const* size, FILE* log_file);
 
-//---------------------------------------
+//-------------ctors--------------------------
 
-Word* text_preparing(const char const* file_name)
+Word* words_ctor(FILE* log_file)
 {
-    if (!file_name)
+    Word* words = (Word*)calloc(WORDS_AMT, sizeof(Word));
+    ALLOCATION_CHECK(words)
+    
+    for (size_t word_cnt = 0; word_cnt < WORDS_AMT; word_cnt++)
     {
-        printf("null\n");
-        return nullptr;
+        words[word_cnt].word = (char*)calloc(MAX_WORD_LEN, sizeof(char));
+        ALLOCATION_CHECK(words[word_cnt].word)
     }
+        
+    return words;
+}
 
-    char* buffer = file_2_buffer(file_name);
-    char* text = remove_comments(buffer);
-    Word* words = split_text_into_words(text); 
+//-------------dtor----------------------
+
+void words_dtor(Word* words)
+{
+    for (size_t word_cnt = 0; word_cnt < WORDS_AMT; word_cnt++) 
+        safe_free((void**)&words[word_cnt].word);
+
+    safe_free((void**)&words);
+}
+
+//-------------tools-------------------
+
+int count_file_size(const char const* file_name, size_t* size, FILE* log_file) 
+{
+    DATA_CHECK_INT(file_name)
+    DATA_CHECK_INT(size)
+
+    struct stat file_info;
+    
+    int stat_res = stat(file_name, &file_info);
+    STAT_CHECK(stat_res)
+    
+    *size = file_info.st_size;
+
+    return 0;
+}
+
+//-----------main--------------------------------
+
+Word* text_preparing(const char const* file_name, FILE* log_file)
+{
+    DATA_CHECK_PTR(file_name)
+
+    char* buffer = file_2_buffer(file_name, log_file);
+    PTR_FUNC_CHECK_PTR(buffer)
+    char* text = remove_comments(buffer, log_file);
+    PTR_FUNC_CHECK_PTR(text)
+    Word* words = split_text_into_words(text, log_file); 
+    PTR_FUNC_CHECK_PTR(words)
 
     return words;
 }
 
-char* file_2_buffer(char* file_name)
+char* file_2_buffer(const char const* file_name, FILE* log_file)
 {
     FILE* file = fopen(file_name, "r");
-    if (!file)
-    {
-        printf("file open problem\n");
-        return nullptr;
-    }
+    FILE_OPEN_CHECK(file)
 
     size_t size = 0;
-
-    count_file_size(file_name, &size);
-
+    int func_output = count_file_size(file_name, &size, log_file);
+    INT_FUNC_CHECK_PTR(func_output)
+    
     char* buffer = (char*)calloc(size, sizeof(char));
-    if (!buffer)
-    {
-        printf("allocation_error\n");
-        return nullptr;
-    }
+    ALLOCATION_CHECK(buffer)
 
     fread(buffer, sizeof(char), size, file);
 
@@ -51,16 +85,7 @@ char* file_2_buffer(char* file_name)
     return buffer;
 }
 
-void count_file_size(char* file_name, size_t* size) 
-{
-    struct stat file_info;
-    
-    stat(file_name, &file_info);
-    
-    *size = file_info.st_size;
-}
-
-char* remove_comments(char* buffer)
+char* remove_comments(char* buffer, FILE* log_file)
 {
     size_t size = strlen(buffer);
     size_t line_len = strlen(KW(LINE_COMMENT));
@@ -104,25 +129,7 @@ char* remove_comments(char* buffer)
     return text;
 }
 
-Word* words_ctor()
-{
-    Word* words = (Word*)calloc(WORDS_AMT, sizeof(Word));
-
-    for (size_t word_cnt = 0; word_cnt < WORDS_AMT; word_cnt++)
-        words[word_cnt].word = (char*)calloc(MAX_WORD_LEN, sizeof(char));   
-    
-    return words;
-}
-
-void words_dtor(Word* words)
-{
-    for (size_t word_cnt = 0; word_cnt < WORDS_AMT; word_cnt++) 
-        free(words[word_cnt].word);
-
-    free(words);
-}
-
-Word* split_text_into_words(char* text)
+Word* split_text_into_words(char* text, FILE* log_file)
 {
     Word* words = words_ctor();
 
@@ -160,10 +167,7 @@ Word* split_text_into_words(char* text)
         }
 
         strncpy(words[word_cnt++].word, text + pointer - word_len, word_len);
-        //printf("!%.2s!, %d\n", text + pointer - word_len, word_len);
     }
-
-    printf("%s\n----------------\n", text);
 
     free(text);
 

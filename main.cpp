@@ -1,10 +1,19 @@
+#include "include/error_reporter.h"
 #include "include/text_preparing.h"
 #include "include/lex_analysis.h"
 //#include "include/syn_analysis.h"
 
 int main(int argc, char ** argv)
 {
-    Word* words = text_preparing(argv[1]);
+    FILE* log_file = err_reporter_ctor();
+    if (!log_file)
+    {
+        printf("problem with oppening log file :((\n");
+        return 1;
+    }
+
+    Word* words = text_preparing(argv[1], log_file);
+    
 //--------------------------------          
     //определить смысл слов, лексер
     Lexer lexer = lexer_ctor(words);

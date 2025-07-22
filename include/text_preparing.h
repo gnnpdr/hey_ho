@@ -1,12 +1,17 @@
 #pragma once
 
+//-----libs-----------------
+
 #include <ctype.h>
 #include <sys/stat.h>
-#include <string.h>
 
 #include "error_reporter.h"
 
+//-----consts------------------
+
 const size_t WORDS_AMT = 150;
+
+//-----structs---------------
 
 struct Word
 {
@@ -14,8 +19,10 @@ struct Word
     size_t line_num;
 };
 
-Word* text_preparing(char* file_name);
+//-----funcs--------------------
 
-Word* words_ctor();
+Word* words_ctor(FILE* log_file);
 
 void words_dtor(Word* words);
+
+Word* text_preparing(const char const* file_name, FILE* log_file);

@@ -2,7 +2,7 @@
 
 #include "../include/lex_analysis.h"
 
-static size_t count_words(Word* words);
+static int count_words(Word* words);
 static size_t add_id(Lexer* lexer, IDType type);
 static size_t check_id(Lexer* lexer);
 static void create_scope(Lexer* lexer);
@@ -19,53 +19,67 @@ static int process_id_token(Lexer* lexer);
 
 //-------------------ctors-------------------------------
 
-Lexer lexer_ctor(Word* words)
+Lexer* lexer_ctor(Word* words, FILE* log_file)      //ok
 {
-    size_t words_amt = count_words(words);
-    Token* tokens = tokens_ctor(words, words_amt);
+    DATA_CHECK_PTR(words)
 
-    Lexer lexer = {};
-    lexer.words_amt = words_amt;
-    lexer.tokens = tokens;
+    int words_amt = count_words(words);
+    INT_FUNC_CHECK_PTR(words_amt)
+
+    Token* tokens = tokens_ctor(words, words_amt);
+    PTR_FUNC_CHECK_PTR(tokens)
+
+    Lexer *lexer = (Lexer*)calloc(1, sizeof(Lexer));
+    ALLOCATION_CHECK_PTR(lexer)
+
+    lexer->words_amt = words_amt;
+    lexer->tokens = tokens;
 
     Scope* scopes = scopes_ctor();
+    PTR_FUNC_CHECK_PTR(scopes)
 
-    lexer.scopes = scopes;
+    lexer->scopes = scopes;
 
     return lexer;
 }
 
-//scope - область видимости. массив областей + первая таблица, состоящая из идентификаторов. 
-IDTable id_table_ctor() 
-{
-    IDTable table = {};
-    table.table = (ID*)calloc(MAX_ID_TABLE_SIZE, sizeof(ID));
-
-    for (size_t id_num = 0; id_num < MAX_ID_TABLE_SIZE; id_num++) 
-        table.table[id_num].word = (char*)calloc(MAX_WORD_LEN, sizeof(char));
-
-    return table;
-}
-
-Scope* scopes_ctor()
+Scope* scopes_ctor(FILE* log_file)      //ok
 {
     Scope* scopes = (Scope*)calloc(1, sizeof(Scope));
+    ALLOCATION_CHECK_PTR(scopes)
 
-    scopes[0].ID_table = id_table_ctor();
+    id_table_ctor(&scopes[0].ID_table, log_file);
 
     return scopes;
 }
 
-
-Token* tokens_ctor(Word* words, size_t words_amt)
+void id_table_ctor(IDTable* table, FILE* log_file)          //ok       
 {
+    assert(table);
+
+    table->table = (ID*)calloc(MAX_ID_TABLE_SIZE, sizeof(ID));
+    ALLOCATION_CHECK_VOID(table->table)
+
+    for (size_t id_num = 0; id_num < MAX_ID_TABLE_SIZE; id_num++) 
+    {
+        table->table[id_num].word = (char*)calloc(MAX_WORD_LEN, sizeof(char));
+        ALLOCATION_CHECK_VOID(table->table[id_num].word)
+    }
+}
+
+Token* tokens_ctor(Word* words, size_t words_amt, FILE* log_file)       //ok
+{
+    DATA_CHECK_PTR(words)
+
     Token* tokens = (Token*)calloc(words_amt, sizeof(Token));
+    ALLOCATION_CHECK_PTR(tokens)
 
     for (size_t token_cnt = 0; token_cnt < words_amt; token_cnt++)
     {
+        DATA_CHECK_PTR(words[token_cnt].word)
         char* word = words[token_cnt].word;
 
-        tokens[token_cnt].word = strdup(word);
+        tokens[token_cnt].word = safe_strdup(word, log_file);
         tokens[token_cnt].line = words[token_cnt].line_num;
     }
 
@@ -76,41 +90,30 @@ Token* tokens_ctor(Word* words, size_t words_amt)
 
 //--------------------dtors---------------------------------------
 
-void lexer_dtor(Lexer* lexer)
+void lexer_dtor(Lexer* lexer)       //ok
 {
     tokens_dtor(lexer->tokens, lexer->words_amt);
 
     scopes_dtor(lexer->scopes, lexer->cur_scope);
 }
 
-void tokens_dtor(Token* tokens, size_t words_amt)
+void tokens_dtor(Token* tokens, size_t words_amt)       //ok
 {
     for (size_t words_cnt = 0; words_cnt < words_amt; words_cnt++)
-        free(tokens[words_cnt].word);
+        safe_free((void**)&tokens[words_cnt].word);
 
-    free(tokens);
+    safe_free((void**)&tokens);
 }
 
-//void id_table_dtor(IDTable table)
-//{
-//    ID* id_table = table.table;
-//    for (size_t id_num = 0; id_num < MAX_ID_TABLE_SIZE; id_num++)
-//    free(id_table[id_num].word);
-//
-//    free(id_table);
-//}
+void id_table_dtor(IDTable* table)      //ok
+{
+    for (size_t id_num = 0; id_num < MAX_ID_TABLE_SIZE; id_num++)
+        safe_free((void**)&table->table[id_num].word);
 
-void id_table_dtor(IDTable* table) {  // Принимает указатель
-    if (!table || !table->table) return;
-    
-    for (size_t id_num = 0; id_num < MAX_ID_TABLE_SIZE; id_num++) {
-        free(table->table[id_num].word);
-    }
-    free(table->table);
-    table->table = NULL;  // Явно обнуляем указатель
+    safe_free((void**)&table->table);
 }
 
-void scopes_dtor(Scope* scopes, size_t scopes_amt)
+void scopes_dtor(Scope* scopes, size_t scopes_amt)      //ok
 {
     for (size_t scopes_cnt = 0; scopes_cnt < scopes_amt; scopes_cnt++)
     {
@@ -118,15 +121,22 @@ void scopes_dtor(Scope* scopes, size_t scopes_amt)
         id_table_dtor(&id_table);
     }
 
-    free(scopes);
+    safe_free((void**)&scopes);
 }
 
 //----------------------tools-----------------------------------------
 
-size_t count_words(Word* words)
+int count_words(const Word const* words, FILE* log_file)            //ok
 {
+    DATA_CHECK_INT(words)
+
     size_t word_cnt = 0;
-    while(words[word_cnt].word[0] != '\0')  word_cnt++;
+    DATA_CHECK_INT(words[word_cnt].word)
+    while(words[word_cnt].word[0] != '\0')
+    {
+        word_cnt++;
+        DATA_CHECK_INT(words[word_cnt].word)
+    }  
 
     return word_cnt;
 }
@@ -151,16 +161,16 @@ size_t count_words(Word* words)
 //    return cur_table.len - 1;
 //}
 
-size_t add_id(Lexer* lexer, IDType type) 
+int add_id(Lexer const* lexer, IDType type, FILE* log_file) 
 {
-    // Работаем через указатели, а не копии!
+    DATA_CHECK_INT(lexer)
+
     Scope* current_scope = &lexer->scopes[lexer->cur_scope];
+    DATA_CHECK_INT(current_scope)
     IDTable* table = &current_scope->ID_table;
+    DATA_CHECK_INT(table)
     
-    // Проверка на переполнение таблицы идентификаторов
-    if (table->len >= MAX_ID_TABLE_SIZE) {
-        return ERR_VAL_SIZE_T;
-    }
+    ID_OVERFLOW_CHECK(table->len)
 
     // Копируем слово
     strncpy(table->table[table->len].word, 

@@ -1,7 +1,20 @@
 #pragma once
 
+//-----libs-------------------
+
 #include <assert.h>
+
 #include "text_preparing.h"
+
+//------consts--------------
+
+const size_t FORMING_NEW_SCOPE_AMT  = 1;
+const size_t DELETE_SCOPE_AMT       = 1;
+const size_t FORMING_SET_AMT        = 2;
+const size_t MAX_ID_TABLE_SIZE      = 10;
+const size_t WORD_REST_AMT          = 16;
+
+//------enums---------------
 
 enum TokenType
 {
@@ -12,6 +25,14 @@ enum TokenType
     FUNC_SET,
     KEY_WORD
 };
+
+enum IDType
+{
+    FUNC_ID,
+    VAR_ID,
+};
+
+//-------structs------------
 
 struct Token
 {
@@ -24,22 +45,16 @@ struct Token
     size_t scope;
 };
 
-enum IDType
-{
-    FUNC_ID,
-    VAR_ID,
-};
-
 struct ID
 {
     char* word;
     IDType type;
 };
 
-struct IDTable          //так удобнее обращаться к ид, искать их, удобнее, чем если бы это был просто массив 
+struct IDTable
 {
     ID* table;
-    size_t len;         //сколько заполнено
+    size_t len;
 };
 
 struct Scope
@@ -47,8 +62,6 @@ struct Scope
     size_t scope_ID;
     IDTable ID_table;
 };
-
-const size_t MAX_ID_TABLE_SIZE = 10;
 
 struct Lexer
 {
@@ -60,40 +73,36 @@ struct Lexer
     size_t cur_scope;
 };
 
-Lexer lexer_ctor(Word* words);
+//--------arrays------------
 
-const size_t forming_new_scope_amt = 1;
-inline KeyWordType forming_new_scope[forming_new_scope_amt] = {OPEN_CURLY_BRACE};
+inline KeyWordType forming_new_scope[] = {OPEN_CURLY_BRACE};
 
-const size_t delete_scope_amt = 1;
 inline KeyWordType delete_scope[] = {CLOSE_CURLY_BRACE};
 
+inline KeyWordType forming_set[] = { INT, 
+                                     VOID };
 
-const size_t forming_set_amt = 2;
-inline KeyWordType forming_set[] = {INT, VOID};
+inline KeyWordType key_word_rest[]  = { EQUAL,
+                                        RETURN,
+                                        IF,
+                                        ELSE_IF,
+                                        ELSE,
+                                        FOR,
+                                        WHILE,
+                                        PLUS,
+                                        MINUS,
+                                        MULT,
+                                        DIV,
+                                        END,
+                                        OPEN_BRACE,
+                                        CLOSE_BRACE,
+                                        PRINT,
+                                        SEP };
 
-const size_t word_rest_amt = 16;
-inline KeyWordType key_word_rest[word_rest_amt] = {
-    EQUAL,
-    RETURN,
-    IF,
-    ELSE_IF,
-    ELSE,
-    FOR,
-    WHILE,
-    PLUS,
-    MINUS,
-    MULT,
-    DIV,
-    END,
-    OPEN_BRACE,
-    CLOSE_BRACE,
-    PRINT,
-    SEP
-};
+//-------funcs-------------
 
-
-IDTable id_table_ctor();
+Lexer lexer_ctor(Word* words);
+IDTable* id_table_ctor(FILE* log_file);
 Scope* scopes_ctor();
 Token* tokens_ctor(Word* words, size_t words_amt);
 void lexer_dtor(Lexer* lexer);

@@ -1,24 +1,24 @@
 #include "../include/text_preparing.h"
 
-//----------------------------
+//-------------------------------------------
+
+static int count_file_size(const char const* file_name, size_t* size, FILE* log_file);          //? перенести в common.cpp?
 
 static char* file_2_buffer(const char const* file_name, FILE* log_file);
-static char* remove_comments(char const* buffer, FILE* log_file);
+static char* remove_comments(char* buffer, FILE* log_file);
 static Word* split_text_into_words(char* text, FILE* log_file);
-
-static int count_file_size(const char const* file_name, size_t const* size, FILE* log_file);
 
 //-------------ctors--------------------------
 
 Word* words_ctor(FILE* log_file)
 {
     Word* words = (Word*)calloc(WORDS_AMT, sizeof(Word));
-    ALLOCATION_CHECK(words)
+    ALLOCATION_CHECK_PTR(words)
     
     for (size_t word_cnt = 0; word_cnt < WORDS_AMT; word_cnt++)
     {
         words[word_cnt].word = (char*)calloc(MAX_WORD_LEN, sizeof(char));
-        ALLOCATION_CHECK(words[word_cnt].word)
+        ALLOCATION_CHECK_PTR(words[word_cnt].word)
     }
         
     return words;
@@ -69,6 +69,9 @@ Word* text_preparing(const char const* file_name, FILE* log_file)
 
 char* file_2_buffer(const char const* file_name, FILE* log_file)
 {
+    DATA_CHECK_PTR(file_name)
+    DATA_CHECK_PTR(log_file)
+    
     FILE* file = fopen(file_name, "r");
     FILE_OPEN_CHECK(file)
 
@@ -77,22 +80,30 @@ char* file_2_buffer(const char const* file_name, FILE* log_file)
     INT_FUNC_CHECK_PTR(func_output)
     
     char* buffer = (char*)calloc(size, sizeof(char));
-    ALLOCATION_CHECK(buffer)
+    ALLOCATION_CHECK_PTR(buffer)
 
-    fread(buffer, sizeof(char), size, file);
+    int read_symbs = fread(buffer, sizeof(char), size, file);
+    FREAD_CHECK(file)
 
-    fclose(file);
+    int fclose_res = fclose(file);
+    FILE_CLOSE_CHECK(fclose_res)
+    file = NULL;
+
     return buffer;
 }
 
 char* remove_comments(char* buffer, FILE* log_file)
 {
+    DATA_CHECK_PTR(buffer)
+    DATA_CHECK_PTR(log_file)
+
     size_t size = strlen(buffer);
     size_t line_len = strlen(KW(LINE_COMMENT));
     size_t multi_start_len = strlen(KW(MULTI_LINE_COMMENT_START));
     size_t multi_end_len = strlen(KW(MULTI_LINE_COMMENT_END));
 
     char* text = (char*)calloc(size + 1, sizeof(char));
+    ALLOCATION_CHECK_PTR(text)
 
     size_t buf_pointer = 0, text_pointer = 0;
 
@@ -124,14 +135,17 @@ char* remove_comments(char* buffer, FILE* log_file)
 
     text[text_pointer] = '\0';
 
-    free(buffer);
+    safe_free((void**)&buffer);
 
     return text;
 }
 
 Word* split_text_into_words(char* text, FILE* log_file)
 {
-    Word* words = words_ctor();
+    DATA_CHECK_PTR(text)
+    DATA_CHECK_PTR(log_file)
+    
+    Word* words = words_ctor(log_file);
 
     size_t pointer = 0, line_cnt = 0, word_cnt = 0, word_len = 0;
 
@@ -166,10 +180,10 @@ Word* split_text_into_words(char* text, FILE* log_file)
             }
         }
 
-        strncpy(words[word_cnt++].word, text + pointer - word_len, word_len);
+        safe_strncpy(words[word_cnt++].word, text + pointer - word_len, word_len, log_file);
     }
 
-    free(text);
+    safe_free((void**)&text);
 
     return words;
 }

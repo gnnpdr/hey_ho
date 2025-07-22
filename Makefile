@@ -6,7 +6,7 @@ CFLAGS := -Wall -Wextra -I$(ROOT_DIR)/include -MMD -MP
 LDFLAGS  := 
 TARGET   := program
 
-SRCS     := main.cpp source/text_preparing.cpp source/lex_analysis.cpp
+SRCS     := main.cpp source/error_reporter.cpp source/text_preparing.cpp source/lex_analysis.cpp
 OBJS     := $(addprefix build/,$(notdir $(SRCS:.cpp=.o)))
 DEPS     := $(OBJS:.o=.d)  # Файлы зависимостей (.d)
 
@@ -25,7 +25,7 @@ build:
 	mkdir -p $@
 
 clean:
-	rm -rf build $(TARGET)
+	rm -rf build $(TARGET) log_file.txt
 
 -include $(DEPS)  # Подключаем сгенерированные зависимости
 

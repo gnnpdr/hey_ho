@@ -25,4 +25,4 @@ Word* words_ctor(FILE* log_file);
 
 void words_dtor(Word* words);
 
-Word* text_preparing(const char const* file_name, FILE* log_file);
+Word* text_preparing(const char *const file_name, FILE* log_file);

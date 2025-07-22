@@ -101,13 +101,8 @@ inline KeyWordType key_word_rest[]  = { EQUAL,
 
 //-------funcs-------------
 
-Lexer lexer_ctor(Word* words);
-IDTable* id_table_ctor(FILE* log_file);
-Scope* scopes_ctor();
-Token* tokens_ctor(Word* words, size_t words_amt);
-void lexer_dtor(Lexer* lexer);
-void tokens_dtor(Token* tokens, size_t words_amt);
-void id_table_dtor(IDTable* table);
-void scopes_dtor(Scope* scopes, size_t scopes_amt);
+Lexer* lexer_ctor(Word* words, FILE* log_file);
 
-void lex_analysis(Lexer* lexer);
+void lexer_dtor(Lexer* lexer);
+
+int lex_analysis(Lexer* lexer, FILE* log_file);

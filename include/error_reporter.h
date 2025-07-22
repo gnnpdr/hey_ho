@@ -19,6 +19,7 @@ enum SystemErrorType
     EOF_ERROR,
     FREAD_ERROR,
     FCLOSE_ERROR,
+    WORDS_OVERFLOW,
     UNKNOWN_ERROR
 };
 
@@ -33,103 +34,103 @@ enum LangErrorType
 
 void safe_free(void **ptr);
 
-inline char* system_err_output[] = {"Calloc error\n", 
-                                    "can't open file\n"
-                                    "can't close file\n",
-                                    "invalid data\n",
-                                    "stat failed\n",
-                                    "EOF error\n",
-                                    "fread error\n",
-                                    "fclose error\n",
-                                    "what have you done?\n"};
+inline const char* system_err_output[] = {"Calloc error", 
+                                          "can't open file",
+                                          "can't close file",
+                                          "invalid data",
+                                          "stat failed",
+                                          "EOF error",
+                                          "fread error",
+                                          "fclose error",
+                                          "what have you done?"};
 
-inline char* lang_err_output[] = {"too much id in the scope\n"};
+inline const char* lang_err_output[] = {"too much id in the scope\n"};
 
 #define SYS_ERR_REP_PTR(sys_err_type)       do                                                                                      \
                                             {                                                                                       \
                                                 int output_res = output_sys_err_msg(__LINE__, __FILE__, sys_err_type, log_file);    \
                                                 if (output_res == ERR_VAL_INT)                                                      \
-                                                {                                                                                   \
                                                     printf("fprintf error while printing error message\n");                         \
-                                                    return nullptr;                                                                 \
-                                                }                                                                                   \
-                                            }while(true);      
+                                                return nullptr;                                                                     \
+                                            }while(0);      
                                             
 #define SYS_ERR_REP_VOID(sys_err_type)      do                                                                                      \
                                             {                                                                                       \
                                                 int output_res = output_sys_err_msg(__LINE__, __FILE__, sys_err_type, log_file);    \
                                                 if (output_res == ERR_VAL_INT)                                                      \
-                                                {                                                                                   \
                                                     printf("fprintf error while printing error message\n");                         \
-                                                    return;                                                                         \
-                                                }                                                                                   \
-                                            }while(true);   
+                                                return;                                                                             \
+                                            }while(0);   
 
 #define SYS_ERR_REP_INT(sys_err_type)       do                                                                                      \
                                             {                                                                                       \
                                                 int output_res = output_sys_err_msg(__LINE__, __FILE__, sys_err_type, log_file);    \
                                                 if (output_res == ERR_VAL_INT)                                                      \
-                                                {                                                                                   \
                                                     printf("fprintf error while printing error message\n");                         \
-                                                    return ERR_VAL_INT;                                                             \
-                                                }                                                                                   \
-                                            }while(true);                                                                           
+                                                return ERR_VAL_INT;                                                                 \
+                                            }while(0);                                                                           
 
-#define LANG_ERR_REP_PTR(lang_err_type, ...)    do                                                                                  \
-                                            {                                                                                       \
-                                                int output_lang_err_msg(__LINE__, __FILE__, lang_err_type, ##__VA_ARGS__, log_file); \
-                                                if (output_res == ERR_VAL_INT)                                                      \
-                                                {                                                                                   \
-                                                    printf("fprintf error while printing error message\n");                         \
-                                                    return nullptr;                                                                 \
-                                                }                                                                                   \
-                                            }while(true);   
+#define LANG_ERR_REP_PTR(lang_err_type)    do                                                                                           \
+                                                {                                                                                       \
+                                                    int output_res = output_lang_err_msg(__LINE__, __FILE__, lang_err_type, log_file);  \
+                                                    if (output_res == ERR_VAL_INT)                                                      \
+                                                    {                                                                                   \
+                                                        printf("fprintf error while printing error message\n");                         \
+                                                        return nullptr;                                                                 \
+                                                    }                                                                                   \
+                                                }while(0);   
                                             
-#define LANG_ERR_REP_INT(lang_err_type, ...)    do                                                                                  \
+#define LANG_ERR_REP_INT(lang_err_type)    do                                                                                       \
                                             {                                                                                       \
-                                                int output_lang_err_msg(__LINE__, __FILE__, lang_err_type, ##__VA_ARGS__, log_file); \
+                                                int output_res = output_lang_err_msg(__LINE__, __FILE__, lang_err_type, log_file);  \
                                                 if (output_res == ERR_VAL_INT)                                                      \
                                                 {                                                                                   \
                                                     printf("fprintf error while printing error message\n");                         \
                                                     return ERR_VAL_INT;                                                             \
                                                 }                                                                                   \
-                                            }while(true);     
+                                            }while(0);     
 
 #define ALLOCATION_CHECK_PTR(ptr)           do                                                                                      \
                                             {                                                                                       \
                                                 if (!ptr)                                                                           \
                                                     SYS_ERR_REP_PTR(ALLOCATION_ERROR)                                               \
-                                            }while(true);   
+                                            }while(0);   
                         
 #define ALLOCATION_CHECK_VOID(ptr)          do                                                                                      \
                                             {                                                                                       \
                                                 if (!ptr)                                                                           \
                                                     SYS_ERR_REP_VOID(ALLOCATION_ERROR)                                              \
-                                            }while(true);  
+                                            }while(0);  
+
+#define ALLOCATION_CHECK_INT(ptr)          do                                                                                       \
+                                            {                                                                                       \
+                                                if (!ptr)                                                                           \
+                                                    SYS_ERR_REP_INT(ALLOCATION_ERROR)                                               \
+                                            }while(0);  
 
 #define DATA_CHECK_PTR(ptr)                 do                                                                                      \
                                             {                                                                                       \
                                                 if (!ptr)                                                                           \
                                                     SYS_ERR_REP_PTR(INPUT_DATA_ERROR)                                               \
-                                            }while(true);       
+                                            }while(0);        
 
 #define DATA_CHECK_INT(ptr)                 do                                                                                      \
                                             {                                                                                       \
                                                 if (!ptr)                                                                           \
                                                     SYS_ERR_REP_INT(INPUT_DATA_ERROR)                                               \
-                                            }while(true);   
+                                            }while(0);    
 
 #define FILE_OPEN_CHECK(ptr)                do                                                                                      \
                                             {                                                                                       \
                                                 if (!ptr)                                                                           \
                                                     SYS_ERR_REP_PTR(FILE_OPENING_ERROR)                                             \
-                                            }while(true); 
+                                            }while(0);  
 
 #define STAT_CHECK(stat_res)                do                                                                                      \
                                             {                                                                                       \
                                                 if (stat_res == -1)                                                                 \
                                                     SYS_ERR_REP_INT(STAT_ERROR)                                                     \
-                                            }while(true);
+                                            }while(0);  
 
 #define FREAD_CHECK(file)                   do                                                                                      \
                                             {                                                                                       \
@@ -143,37 +144,49 @@ inline char* lang_err_output[] = {"too much id in the scope\n"};
                                                     else if (ferror(file))                                                          \
                                                         SYS_ERR_REP_PTR(FREAD_ERROR)                                                \
                                                 }                                                                                   \
-                                            }while(true);
+                                            }while(0);  
 
 #define FILE_CLOSE_CHECK(fclose_res)        do                                                                                      \
                                             {                                                                                       \
                                                 if (fclose_res == EOF)                                                              \
-                                                    SYS_ERR_REP_PTR(FCLOSE_ERROR)                                                   \   
-                                            }while(true);
+                                                    SYS_ERR_REP_PTR(FCLOSE_ERROR)                                                   \
+                                            }while(0);  
 
 #define PTR_FUNC_CHECK_PTR(func_output)     do                                                                                      \
                                             {                                                                                       \
                                                 if (!func_output)                                                                   \
                                                     SYS_ERR_REP_PTR(RETURN_MSG)                                                     \
-                                            }while(true);
+                                           }while(0);  
 
 #define INT_FUNC_CHECK_PTR(func_output)     do                                                                                      \
                                             {                                                                                       \
                                                 if (func_output == ERR_VAL_INT)                                                     \
                                                     SYS_ERR_REP_PTR(RETURN_MSG)                                                     \
-                                            }while(true);
+                                            }while(0);  
+
+#define PTR_FUNC_CHECK_INT(func_output)     do                                                                                      \
+                                            {                                                                                       \
+                                                if (!func_output)                                                                   \
+                                                    SYS_ERR_REP_INT(RETURN_MSG)                                                     \
+                                            }while(0);  
+
+#define INT_FUNC_CHECK_INT(func_output)     do                                                                                      \
+                                            {                                                                                       \
+                                                if (func_output == ERR_VAL_INT)                                                     \
+                                                    SYS_ERR_REP_INT(RETURN_MSG)                                                     \
+                                            }while(0);  
 
 #define ID_OVERFLOW_CHECK(table_len)        do                                                                                      \
                                             {                                                                                       \
                                                 if (table_len >= MAX_ID_TABLE_SIZE)                                                 \
                                                     LANG_ERR_REP_INT(ID_TABLE_OVERFLOW)                                             \
-                                            }while(true);
+                                            }while(0);  
         
 
 FILE* err_reporter_ctor();
 int err_reporter_dtor(FILE* log_file);
-int output_sys_err_msg(size_t line, char* file_name, SystemErrorType type, FILE* log_file);
-int output_lang_err_msg_help(size_t line, char* file_name, LangErrorType type, char* expected_answer, FILE* log_file);
-int output_lang_err_msg(size_t line, char* file_name, LangErrorType type, char* expected_answer, FILE* log_file);
+int output_sys_err_msg(size_t line, const char *const file_name, SystemErrorType type, FILE* log_file);
+int output_lang_err_msg_help(size_t line, const char *const file_name, LangErrorType type, char* expected_answer, FILE* log_file);
+int output_lang_err_msg(size_t line, const char *const file_name, LangErrorType type, FILE* log_file);
 size_t safe_strncpy(char *dest, const char *src, size_t size, FILE* log_file);
 char* safe_strdup(const char *src, FILE* log_file);

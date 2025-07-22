@@ -21,14 +21,14 @@ int err_reporter_dtor(FILE* log_file)
     return 0;
 }
 
-int output_sys_err_msg(size_t line, char* file_name, SystemErrorType type, FILE* log_file)
+int output_sys_err_msg(size_t line, const char *const file_name, SystemErrorType type, FILE* log_file)
 {
     int written_bytes = -1; 
 
     if (type != RETURN_MSG)
-        written_bytes = fprintf(log_file, "[ERROR] %s, FILE %s, LINE %d\n", system_err_output[type], file_name, line);
+        written_bytes = fprintf(log_file, "[ERROR] %s, FILE %s, LINE %ld\n", system_err_output[type], file_name, line);
     else
-        written_bytes = fprintf(log_file, "[RETURN], FILE %s, LINE %d\n", file_name, line);
+        written_bytes = fprintf(log_file, "[RETURN], FILE %s, LINE %ld\n", file_name, line);
 
     if (written_bytes < 0)
         return ERR_VAL_INT;
@@ -36,14 +36,14 @@ int output_sys_err_msg(size_t line, char* file_name, SystemErrorType type, FILE*
     return 0;
 }
 
-int output_lang_err_msg_help(size_t line, char* file_name, LangErrorType type, char* expected_answer, FILE* log_file)
+int output_lang_err_msg_help(size_t line, const char *const  file_name, LangErrorType type, char* expected_answer, FILE* log_file)
 {
     int written_bytes = -1; 
 
     if (expected_answer)
-        written_bytes = fprintf(log_file, "[ERROR] %s, maybe you meant '%s'??, FILE %s, LINE %d\n", lang_err_output[type], expected_answer, file_name, line);
+        written_bytes = fprintf(log_file, "[ERROR] %s, maybe you meant '%s'??, FILE %s, LINE %ld\n", lang_err_output[type], expected_answer, file_name, line);
     else
-        written_bytes = fprintf(log_file, "[ERROR] %s, FILE %s, LINE %d\n",lang_err_output[type], file_name, line);
+        written_bytes = fprintf(log_file, "[ERROR] %s, FILE %s, LINE %ld\n",lang_err_output[type], file_name, line);
 
     if (written_bytes < 0)
         return ERR_VAL_INT;
@@ -51,9 +51,9 @@ int output_lang_err_msg_help(size_t line, char* file_name, LangErrorType type, c
     return 0;
 }
 
-int output_lang_err_msg(size_t line, char* file_name, LangErrorType type, char* expected_answer, FILE* log_file)
+int output_lang_err_msg(size_t line, const char *const file_name, LangErrorType type, FILE* log_file)
 {
-    int written_bytes = fprintf(log_file, "[ERROR] %s, FILE %s, LINE %d\n", lang_err_output[type], file_name, line);
+    int written_bytes = fprintf(log_file, "[ERROR] %s, FILE %s, LINE %ld\n", lang_err_output[type], file_name, line);
     if (written_bytes < 0)
         return ERR_VAL_INT;
 
@@ -89,7 +89,7 @@ char* safe_strdup(const char *src, FILE* log_file)
     DATA_CHECK_PTR(src)
 
     char* copy = strdup(src);
-    ALLOCATION_CHECK(copy)
+    ALLOCATION_CHECK_PTR(copy)
 
     return copy;
 }

@@ -2,9 +2,9 @@
 
 //-------------------------------------------
 
-static int count_file_size(const char const* file_name, size_t* size, FILE* log_file);          //? перенести в common.cpp?
+static int count_file_size(const char *const file_name, size_t* size, FILE* log_file);          //? перенести в common.cpp?
 
-static char* file_2_buffer(const char const* file_name, FILE* log_file);
+static char* file_2_buffer(const char *const file_name, FILE* log_file);
 static char* remove_comments(char* buffer, FILE* log_file);
 static Word* split_text_into_words(char* text, FILE* log_file);
 
@@ -36,7 +36,7 @@ void words_dtor(Word* words)
 
 //-------------tools-------------------
 
-int count_file_size(const char const* file_name, size_t* size, FILE* log_file) 
+int count_file_size(const char *const file_name, size_t* size, FILE* log_file) 
 {
     DATA_CHECK_INT(file_name)
     DATA_CHECK_INT(size)
@@ -53,21 +53,24 @@ int count_file_size(const char const* file_name, size_t* size, FILE* log_file)
 
 //-----------main--------------------------------
 
-Word* text_preparing(const char const* file_name, FILE* log_file)
+Word* text_preparing(const char *const file_name, FILE* log_file)
 {
     DATA_CHECK_PTR(file_name)
 
     char* buffer = file_2_buffer(file_name, log_file);
     PTR_FUNC_CHECK_PTR(buffer)
+    
     char* text = remove_comments(buffer, log_file);
+
     PTR_FUNC_CHECK_PTR(text)
     Word* words = split_text_into_words(text, log_file); 
     PTR_FUNC_CHECK_PTR(words)
 
+
     return words;
 }
 
-char* file_2_buffer(const char const* file_name, FILE* log_file)
+char* file_2_buffer(const char *const file_name, FILE* log_file)
 {
     DATA_CHECK_PTR(file_name)
     DATA_CHECK_PTR(log_file)
@@ -82,7 +85,7 @@ char* file_2_buffer(const char const* file_name, FILE* log_file)
     char* buffer = (char*)calloc(size, sizeof(char));
     ALLOCATION_CHECK_PTR(buffer)
 
-    int read_symbs = fread(buffer, sizeof(char), size, file);
+    size_t read_symbs = fread(buffer, sizeof(char), size, file);
     FREAD_CHECK(file)
 
     int fclose_res = fclose(file);
@@ -147,9 +150,9 @@ Word* split_text_into_words(char* text, FILE* log_file)
     
     Word* words = words_ctor(log_file);
 
-    size_t pointer = 0, line_cnt = 0, word_cnt = 0, word_len = 0;
+    size_t pointer = 0, line_cnt = 1, word_cnt = 0, word_len = 0;
 
-    while(pointer < strlen(text))
+    while(text[pointer] != '\0')
     {
         if (isspace(text[pointer]))
         {
@@ -162,6 +165,8 @@ Word* split_text_into_words(char* text, FILE* log_file)
        
         words[word_cnt].line_num = line_cnt;
         word_len = 0;
+
+        char* word_start = text + pointer;
 
         if (isalnum(text[pointer]))
         {
@@ -180,7 +185,31 @@ Word* split_text_into_words(char* text, FILE* log_file)
             }
         }
 
-        safe_strncpy(words[word_cnt++].word, text + pointer - word_len, word_len, log_file);
+        //safe_strncpy(words[word_cnt++].word, text + pointer - word_len, word_len, log_file);
+
+        if (word_cnt < WORDS_AMT)
+        {
+            words[word_cnt].line_num = line_cnt;
+            
+            // Выделяем память под слово (+1 для '\0')
+            //words[word_cnt].word = (char*)calloc(word_len + 1, sizeof(char));
+            //if (!words[word_cnt].word)
+            //{
+            //    output_sys_err_msg(__LINE__, __FILE__, ERR_MEM_ALLOC, log_file);
+            //    break;
+            //}
+            
+            // Копируем именно word_len символов
+            strncpy(words[word_cnt].word, word_start, word_len);
+            words[word_cnt].word[word_len] = '\0'; // Явно добавляем терминатор
+            
+            word_cnt++;
+        }
+        else
+        {
+            output_sys_err_msg(__LINE__, __FILE__, WORDS_OVERFLOW, log_file);
+            break;
+        }
     }
 
     safe_free((void**)&text);

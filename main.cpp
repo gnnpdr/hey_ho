@@ -13,18 +13,22 @@ int main(int argc, char ** argv)
     }
 
     Word* words = text_preparing(argv[1], log_file);
+    PTR_FUNC_CHECK_INT(words)
     
 //--------------------------------          
     //определить смысл слов, лексер
-    Lexer lexer = lexer_ctor(words);
-    lex_analysis(&lexer);
+    Lexer* lexer = lexer_ctor(words, log_file);
+    lex_analysis(lexer, log_file);
 
     //for (int i = 0; i < 31; i++)
     //{
-    //    printf("%s, %d, %d, %d, %d\n", lexer.tokens[i].word, lexer.tokens[i].line, lexer.tokens[i].scope, lexer.tokens[i].type, lexer.tokens[i].value);
+    //    printf("%s, %d, %d, %d, %d\n", lexer->tokens[i].word, lexer->tokens[i].line, lexer->tokens[i].scope, lexer->tokens[i].type, lexer->tokens[i].value);
     //}
     //printf("\n");
 //------------------------------
     //связать смысловые блоки, рекурсивный спуск
     //syn_analysis(words, id_table);
+
+
+    err_reporter_dtor(log_file);
 }

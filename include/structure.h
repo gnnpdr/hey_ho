@@ -66,4 +66,3 @@ inline KeyWord key_words[KEY_WORDS_AMT] = {{LINE_COMMENT, 1, "..."},
                             {SEP, 1, ","},
                             {OPEN_CURLY_BRACE, 1,  "{"},
                             {CLOSE_CURLY_BRACE, 1, "}"}};
-

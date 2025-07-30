@@ -1,7 +1,7 @@
 #include "include/error_reporter.h"
 #include "include/text_preparing.h"
 #include "include/lex_analysis.h"
-//#include "include/syn_analysis.h"
+#include "include/syn_analysis.h"
 
 int main(int argc, char ** argv)
 {
@@ -27,7 +27,9 @@ int main(int argc, char ** argv)
     //printf("\n");
 //------------------------------
     //связать смысловые блоки, рекурсивный спуск
-    //syn_analysis(words, id_table);
+    Token* tokens = lexer->tokens;
+    
+    Node* root = syn_analysis(tokens, log_file);
 
 
     err_reporter_dtor(log_file);

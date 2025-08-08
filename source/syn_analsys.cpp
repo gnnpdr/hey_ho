@@ -1,100 +1,66 @@
 #include "../include/syn_analsys.h"
-
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//CODE    ::= {EXPR}* + 'end'
 Node* syn_analysis(const Token *const tokens, size_t *const pointer, FILE *const log_file) 
 {
-    assert(tokens);
-    assert(pointer);
-    assert(log_file);
-    DATA_CHECK_PTR(tokens + *pointer)
-
-    Node* root = get_code(tokens, pointer, log_file);                               //? слишком маленькая функция тогда
-    //if (tokens[*pointer].type != KEY_WORD && tokens[*pointer].value != END)
-    //    ERROR 
-
-    return root;
-}
-
-Node* get_code(const Token *const tokens, size_t *const pointer, FILE *const log_file) 
-{
-    assert(tokens);
-    assert(pointer);
-    assert(log_file);
-    DATA_CHECK_PTR(tokens + *pointer)
-
-    Node* val = get_expr(tokens, pointer, log_file);                                //TODO проверить пустой код
+    Node* root = get_expr(tokens, pointer, log_file);
 
     while (tokens[*pointer].type != KEY_WORD && tokens[*pointer].value != END)
     {
-        Node* new_val = get_expr(tokens, pointer, log_file);
+        Node* new_expr = get_expr(tokens, pointer, log_file);
 
-        //if (tokens[*pointer].type != KEY_WORD && tokens[*pointer].value != SEP)
-        //    ERROR
-        val = make_node(KW_NODE, SEP, val, new_val, log_file);
+        root = make_node(KW_NODE, SEP, root, new_expr, log_file);              //в тексте не будет разделителя, это просто нода такая
         //if (!(tokens + *pointer))
-        //    ERROR
+        //    ERROR -> no END
     }
 
-    return val;
+    return root;
 }
-
-//EXPR    ::= LAYER | SERV {',' SERV}*
-Node* get_expr(const Token *const tokens, size_t *const pointer, FILE *const log_file) 
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+//EXPR    ::= {LAYER}* | SERV {',' SERV}*
+Node* get_expr(const Token *const tokens, size_t *const pointer, FILE *const log_file)          //TODO: можно сделать меньше, если сделать функцию и передавать в нее тип функции анализа для списка
 {
-    assert(tokens);
-    assert(pointer);
-    assert(log_file);
-    DATA_CHECK_PTR(tokens + *pointer)
 
-    Node* val = nullptr;
-    //check layer
+    ListNode* expr_list = list_ctor();
+
     bool is_layer = check_layer(tokens, pointer, log_file);
-    if (is_layer)
+    while (is_layer)
     {
-        val = get_layer(tokens, pointer, log_file);
-        PTR_FUNC_CHECK_PTR(val)
+        Node* layer = get_layer(tokens, pointer, log_file);
+        list_push(expr_list, layer);
+        is_layer = check_layer(tokens, pointer, log_file);
     }
-    //check serv
-    bool is_sert = check_serv(tokens, pointer, log_file);
-    if (is_serv)
+    if (expr_list->list_size) 
     {
-        val = get_serv(tokens, pointer, log_file);
-        PTR_FUNC_CHECK_PTR(val)
-    }
+        Node* expr = make_list_node(LAYER_LIST_NODE, expr_list, 0, log_file);
+        return expr;
+    }   
 
-    //ERROR
+    bool is_serv = check_serv(tokens, pointer, log_file);
+    while (is_serv)
+    {
+        Node* serv = get_serv(tokens, pointer, log_file);
+        list_push(expr_list, serv);
+        if (tokens[*pointer].type == KEY_WORD && tokens[*pointer].value == SEP)
+            (*pointer)++;
+        //else
+        //    ERROR -> lost SEP
+        is_serv = check_serv(tokens, pointer, log_file);
+    }
+    if (expr_list->list_size) 
+    {
+        Node* expr = make_list_node(LAYER_LIST_NODE, expr_list, 0, log_file);
+        return expr;
+    }   
+
+    // ERROR what did you write?
+    return nullptr;
 }
 
-//SERV    ::= VARSET | EQAL | FUNC
-bool check_serv(const Token *const tokens, size_t *const pointer, FILE *const log_file)    //TODO сюда надо проход по массиву типов токенов -> нужно сделать функцию проверки на void или типа того
+bool check_serv(const Token *const tokens, size_t *const pointer, FILE *const log_file)
 {             
     bool is_correct_type = is_in_massive((void*)serv_pr, sizeof(TokenType), FORMING_SERV_AMT, (void*)tokens[*pointer].type);                                                                      
-    
-    if (is_correct_type)
-    {
-        //if (tokens[*pointer].type == VAR_SET && tokens[*pointer].value == VOID)         //достаточно обработать varset, остальные не пересекаются
-        //    ERROR 
-        return true;
-    }
-
-    return false;
-}
-
-Node* get_serv(const Token *const tokens, size_t *const pointer, FILE *const log_file) 
-{
-    assert(tokens);
-    assert(pointer);
-    assert(log_file);
-    DATA_CHECK_PTR(tokens + *pointer)
-
-    Node* val = nullptr;
-    if (tokens[*pointer].type == VAR_SET)
-        val = get_varset(tokens, pointer, log_file);
-    else if (tokens[*pointer].type == VAR)
-        val = get_equal(tokens, pointer, log_file);
-    else
-        val = get_func(tokens, pointer, log_file);
-
-    return val;
+    return is_correct_type;
 }
 
 bool check_layer(const Token *const tokens, size_t *const pointer, FILE *const log_file) 
@@ -111,129 +77,176 @@ bool check_layer(const Token *const tokens, size_t *const pointer, FILE *const l
     return false;
 }
 
-//LAYER   ::= CYCLE | COND | FUNCSET
-Node* get_layer(const Token *const tokens, size_t *const pointer, FILE *const log_file) 
+//-----LIST THINGS-------
+ListNode* list_ctor()
 {
-    assert(tokens);
-    assert(pointer);
-    assert(log_file);
-    DATA_CHECK_PTR(tokens + *pointer)
+    ListNode* list = (ListNode*)calloc(1, sizeof(ListNode));
 
+    return list;
+}
+
+void list_push(ListNode* list, Node* new_node)
+{
+    list->list = (Node**)realloc(list->list, (list->list_size + 1) * sizeof(Node*));
+    list->list[list->list_size++] = new_node;
+}
+
+Node* make_list_node(NodeType type, ListNode* list, int val, FILE* log_file)
+{
+    Node* new_node = (Node*)calloc(1, sizeof(Node));
+    new_node->val = val;
+    new_node->type = type;
+    new_node->list = list;
+
+    return new_node;
+}
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
+//SERV ::= VARSET | EQAL | FUNC
+
+Node* get_serv(const Token *const tokens, size_t *const pointer, FILE *const log_file) 
+{
     Node* val = nullptr;
-    if (tokens[*pointer].value == FOR || tokens[*pointer].value == WHILE)
-        val = get_cycle(tokens, pointer, log_file);
-    else if (tokens[*pointer].value == IF || tokens[*pointer].value == ELSE IF || tokens[*pointer].value == ELSE)
-        val = get_cond(tokens, pointer, log_file);
-    else 
-        val = get_funcset(tokens, pointer, log_file);
-
-    PTR_FUNC_CHECK_PTR(val)
-
+    switch(tokens[*pointer].type)
+    {
+        case VAR_SET:
+            val = get_varset(tokens, pointer, log_file); break;
+        case VAR:
+            val = get_equal(tokens, pointer, log_file); break;
+        default:
+            val = get_func(tokens, pointer, log_file);
+    }
     return val;
 }
 
+//LAYER   ::= CYCLE | COND | FUNCSET
+Node* get_layer(const Token *const tokens, size_t *const pointer, FILE *const log_file) 
+{
+    Node* val = nullptr;
+    switch(tokens[*pointer].value)
+    {
+        case FOR:
+        case WHILE:
+            val = get_cycle(tokens, pointer, log_file); break;
+        case IF:
+        case ELSE_IF:
+        case ELSE:
+            val = get_cond(tokens, pointer, log_file); break;
+        default:
+            val = get_funcset(tokens, pointer, log_file);
+    }
+    return val;
+}
+//---------------------------------------------------------------------------------------------------------------------------------------------------
 
-//VARSET  ::= TYPE + VARID [+ '=' + VARID | SUM | FUNC]                                             //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//VARSET  ::= TYPE + VARID [+ '=' + VARID | SUM | FUNC]
+Node* get_varset(const Token *const tokens, size_t *const pointer, FILE *const log_file)  
+{
+    (*pointer)++;                                                                           //тип хранится в таблице
+    int var_id = tokens[*pointer].value;
+    Node* varset_node = make_node(VARSET_NODE, var_id, NULL, NULL, log_file);
+    (*pointer)++;
+    if (tokens[*pointer].type == KEY_WORD && tokens[*pointer].value == EQUAL)
+    {
+        (*pointer)++;
+        Node* right = get_right_equal_part(tokens, pointer, log_file);
+        return make_node(KW_NODE, EQUAL, varset_node, right, log_file);
+    }
 
+    return varset_node;
+}
+
+//EQUAL   ::= VARID + '=' + VARID | SUM | FUNC
+Node* get_equal(const Token *const tokens, size_t *const pointer, FILE *const log_file)  
+{
+    Node* left = get_id(tokens, pointer, log_file);
+    (*pointer)++;
+    if (tokens[*pointer].type == KEY_WORD && tokens[*pointer].value == EQUAL)
+    {
+        (*pointer)++;
+        Node* right = get_right_equal_part(tokens, pointer, log_file);
+        return make_node(KW_NODE, EQUAL, left, right, log_file);
+    }
+    //else
+    //    ERROR
+
+    return nullptr;
+}
+
+Node* get_right_equal_part(const Token *const tokens, size_t *const pointer, FILE *const log_file)  
+{
+    Node* right = nullptr;
+    (*pointer)++;
+    switch(tokens[*pointer].type)
+    {
+        case VAR:
+            right = get_id(tokens, pointer, log_file); break;
+        case FUNC:
+            right = get_func(tokens, pointer, log_file); break;
+        case KEY_WORD:                                                                              //!!!проверка
+            right = get_sum(tokens, pointer, log_file); break;
+        default:
+            //ERROR
+    }
+    return right;
+}
+
+//FUNC ::= ID + '(' + (VARID | SUM) {',' (VARID | SUM)}* + ')'
 Node* get_func(const Token *const tokens, size_t *const pointer, FILE *const log_file) 
 {
-    assert(tokens);
-    assert(pointer);
-    assert(log_file);
-    DATA_CHECK_PTR(tokens + *pointer)
-
     int func_id = tokens[*pointer].value;
     (*pointer)++;
-
-    Node* parameters = get_func_params(tokens, pointer, log_file);
-
-    Node* func = make_node(FUNCSET_NODE, func_id, NULL, parameters);
+    ListNode* param_list = get_func_params(tokens, pointer, log_file);
+    Node* func = make_list_node(FUNC_NODE, param_list, func_id, log_file);
 
     return func;
 }
 
-//Node* get_func_params(const Token *const tokens, size_t *const pointer, FILE *const log_file)           //TODO сделать меньше
-//{
-//    assert(tokens);
-//    assert(pointer);
-//    assert(log_file);
-//    DATA_CHECK_PTR(tokens + *pointer)
-//
-//    //if (tokens[*pointer].type != KEY_WORD && tokens[*pointer].value != OPEN_BRACE)
-//    //    ERROR 
-//    (*pointer)++;
-//    //if (tokens[*pointer].type != KEY_WORD && tokens[*pointer].value != SEP)
-//    //    ERROR 
-//    (*pointer)++;
-//
-//    Node* param = get_id(tokens, pointer, log_file);                 //! надо ссылаться на айди из таблицы. в таблице должны быть указаны слой, имя и ТИП
-//        
-//    while (tokens[*pointer].type != KEY_WORD && tokens[*pointer].value != CLOSE_BRACE)
-//    {    
-//        Node* temp_node = param->right;
-//        if (temp_node)
-//        {
-//            while (temp_node)
-//                temp_node = temp_node->right;
-//            param = temp_node;
-//        }
-//
-//        temp_node = get_id(tokens, pointer, log_file);;
-//        //if (!(tokens + *pointer))
-//        //    ERROR
-//    }
-//    (*pointer)++;
-//
-//    return param;
-//}
-
-Node* get_func_params(const Token* tokens, size_t* pointer, FILE* log_file) 
+ListNode* get_func_params(const Token* tokens, size_t* pointer, FILE* log_file) 
 {
     assert(tokens && pointer && log_file);
     DATA_CHECK_PTR(tokens + *pointer);
 
-    (*pointer)++; 
-    (*pointer)++;
+    //if (tokens[*pointer].type != KEY_WORD && tokens[*pointer].value != OPEN_BRACE)
+        //ERROR -> brace
+    //else
+        (*pointer)++;       //пропускаем первую скобку
 
-    Node* head = nullptr;
-    Node* tail = nullptr;
+    ListNode* param_list = list_ctor();
 
     while (tokens[*pointer].type != KEY_WORD || tokens[*pointer].value != CLOSE_BRACE) 
     {
-        Node* new_param = get_id(tokens, pointer, log_file);
-
-        if (!head) 
+        Node* new_param = nullptr;
+        switch (tokens[*pointer].type)
         {
-            head = new_param;
-            tail = head;
-        } else 
-        {
-            tail->right = new_param;
-            tail = tail->right;
+            case VAR:
+                new_param = get_id(tokens, pointer, log_file);  break;           //! надо ссылаться на айди из таблицы. в таблице должны быть указаны слой, имя и ТИП
+            default:
+                new_param = get_sum(tokens, pointer, log_file);
         }
+        list_push(param_list, new_param);
 
         if (tokens[*pointer].type == SEP)
             (*pointer)++;
+        //else
+        //    ERROR -> no SEP
     }
 
     (*pointer)++; // Пропускаем CLOSE_BRACE
-    return head;
+    return param_list;
 }
 
+//FUNCSET ::= TYPE + ID + '(' + {VARSET}+ + ')' + '{' + [EXPR]+ + '}'
 Node* get_funcset(const Token *const tokens, size_t *const pointer, FILE *const log_file) 
 {
-    assert(tokens);
-    assert(pointer);
-    assert(log_file);
-    DATA_CHECK_PTR(tokens + *pointer)
-
-    Node* type = get_type(tokens, pointer, log_file);
+    (*pointer)++;
     //if (tokens[*pointer].type != FUNC)
     //    ERROR
     int func_id = tokens[*pointer].value;
     (*pointer)++;
 
-    Node* varset = get_varsets(tokens, pointer, log_file);
+
+    //TODO: нужно сделать два листа!! один с varsets а второй с expessions
+    Node* varset = get_varset(tokens, pointer, log_file);
     Node* body = get_func_body(tokens, pointer, log_file);
     Node* parameters = make_node(PARAM_NODE, 0, type, varset, log_file);
 
@@ -260,39 +273,6 @@ Node* get_func_body(const Token *const tokens, size_t *const pointer, FILE *cons
     return expr;
 }
 
-Node* get_varsets(const Token *const tokens, size_t *const pointer, FILE *const log_file)  
-{
-    //if (tokens[*pointer].type != KEY_WORD && tokens[*pointer].value != OPEN_BRACE)
-    //    ERROR 
-    (*pointer)++;
-    Node* param = nullptr;                                                                    //TODO TODO TODO!!! поправить по примеру func_params
-    Node* new_param = nullptr;
-    while (tokens[*pointer].type != KEY_WORD && tokens[*pointer].value != CLOSE_BRACE)
-    {    
-        //if (tokens[*pointer].type != VAR_SET)
-        //    ERROR 
-        //if (tokens[*pointer].value == VOID)
-        //    ERROR 
-        (*pointer)++;
-
-        Node* new_varset = get_id(tokens, pointer, log_file);                 //! надо ссылаться на айди из таблицы. в таблице должны быть указаны слой, имя и !!!!ТИП!!!!
-        if (!param)
-            param = new_param;
-        else
-        {
-            Node* temp_node = param->right;
-            while (temp_node)
-                temp_node = temp_node->right;
-            param = temp_node;
-        }
-
-        //if (!(tokens + *pointer))
-        //    ERROR
-    }
-    (*pointer)++;
-
-    return param;
-}
 
 Node* get_sum (const Token *const tokens, size_t *const pointer, FILE *const log_file) 
 {
@@ -352,43 +332,6 @@ Node* get_mul (const Token *const tokens, size_t *const pointer, FILE *const log
     return val;
 }
 
-//bool is_in_massive(void* array, size_t type_size, size_t types_amt, void* the_word)
-//{
-//    char* base_ptr = (char*)array;
-//    char* word = (char*)the_word;
-//
-//    for (size_t ind = 0; ind < types_amt; ind++)
-//    {
-//        size_t coinc_bits = 0;
-//        for (size_t bit = 0; bit < type_size; bit++)
-//        {
-//            if (base_ptr[ind * type_size + bit] == word[bit])
-//                coinc_bits++;
-//        }
-//        
-//        if (coinc_bits == type_size)
-//            return true;
-//    }
-//    return false;
-//}
-
-
-//memcmp эффективнее
-bool is_in_massive(const void* arr, size_t elem_size, size_t arr_size, const void* elem) 
-{
-    assert(arr);
-    assert(elem);
-    assert(elem_size);
-    
-    const char* byte_arr = (const char*)arr;
-    for (size_t i = 0; i < arr_size; i++) 
-    {
-        if (memcmp(byte_arr + i * elem_size, elem, elem_size) == 0)
-            return true;
-    }
-    return false;
-}
-
 Node* get_brace (const Token *const tokens, size_t *const pointer, FILE *const log_file)     //TODO сделать меньше
 {
     assert(tokens);
@@ -422,22 +365,6 @@ Node* get_brace (const Token *const tokens, size_t *const pointer, FILE *const l
     }
     //else
     //    ERROR
-
-    return val;
-}
-
-Node* get_type (const Token *const tokens, size_t *const pointer, FILE *const log_file) 
-{
-    assert(tokens);
-    assert(pointer);
-    assert(log_file);
-
-    DATA_CHECK_PTR(tokens + *pointer)
-    int value = tokens[*pointer].value;
-    (*pointer)++;
-
-    Node* val = make_node(TYPE_NODE, value, nullptr, nullptr, log_file);
-    PTR_FUNC_CHECK_PTR(val)
 
     return val;
 }
@@ -484,4 +411,20 @@ Node* make_node(NodeType node_type, int val, Node* left, Node* right, FILE* log_
     new_node->right = right;
 
     return new_node;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+bool is_in_massive(const void* arr, size_t elem_size, size_t arr_size, const void* elem) 
+{
+    assert(arr);
+    assert(elem);
+    assert(elem_size);
+    
+    const char* byte_arr = (const char*)arr;
+    for (size_t i = 0; i < arr_size; i++) 
+    {
+        if (memcmp(byte_arr + i * elem_size, elem, elem_size) == 0)
+            return true;
+    }
+    return false;
 }

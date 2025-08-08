@@ -10,13 +10,25 @@ enum NodeType
     FUNCSET_NODE,
     PARAM_NODE,         //слева вывод, справа ноды - входные параметры
     VARSET_NODE,
+    SERV_LIST_NODE,
+    LAYER_LIST_NODE,
+    FUNC_NODE
+};
 
+struct ListNode
+{
+    Node** list;
+    size_t list_size;
 };
 
 struct Node
 {
     NodeType type;
-    int val;
+
+    ListNode* list;                    //общий для layer и serv - массив выражений, ничем не разделенный
+    ListNode* second_list;              //!!! для функций
+
+    int val;                        // для конкретных нодов
     Node* left;
     Node* right;
 };
@@ -31,9 +43,9 @@ inline KeyWordType layer_pr[] = {FOR, WHILE, IF, ELSE_IF, ELSE, VOID, INT};
 const size_t FORMING_SERV_AMT = 3;
 inline TokenType serv_pr[] = {VAR, VAR_SET, FUNC};
 
-/*PROG    ::= CODE + 'end'
-CODE    ::= {EXPR}*
-EXPR    ::= LAYER | SERV {',' SERV}*
+/*
+CODE    ::= {EXPR}* + 'end'
+EXPR    ::= {LAYER}* | SERV {',' SERV}*
 LAYER   ::= CYCLE | COND | FUNCSET
 SERV    ::= VARSET | EQAL | FUNC
 VARSET  ::= TYPE + VARID [+ '=' + VARID | SUM | FUNC]
@@ -41,7 +53,7 @@ EQUAL   ::= VARID + '=' + VARID | SUM | FUNC
 INEQUAL ::= VARID + '<''>''<=''>=''==''!=' VARID | SUM | FUNC
 CYCLE   ::= 'for' | 'while' + '(' + INEQUAL + ')' + '{' + [EXPR]+ + '}'
 COND    ::= if + '(' + EQUAL | INEQUAL + ')' + '{' + [EXPR]+ + '}' + ['else if' + '(' + EQUAL | INEQUAL + ')' + '{' + [EXPR]+ + '}']* + ['else' + '{' + [EXPR]+ + '}']*
-FUNC    ::= ID + '(' + (VARID | SUM) {',' (VARID | SUM)}* + ')'
+FUNC    ::= FUNCID + '(' + (VARID | SUM) {',' (VARID | SUM)}* + ')'
 FUNCSET ::= TYPE + ID + '(' + {VARSET}+ + ')' + '{' + [EXPR]+ + '}'
 SUM     ::= MUL {'+''-' MUL}*
 MUL     ::= BR {'*''/' BR}*
